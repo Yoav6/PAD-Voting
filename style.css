@@ -457,3 +457,15 @@ main { padding-top: 40px; padding-bottom: 20px; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 .presets { display: flex; flex-wrap: wrap; gap: 10px; }
+.stepper { display: inline-flex; align-items: center; gap: 8px; }
+.stepper-num {
+  min-width: 2.2em; padding: 4px 10px; border: 1.5px solid var(--hair-2); border-radius: 3px; background: var(--paper);
+  font: 600 22px/1.1 var(--mono); text-align: center; color: inherit; width: 2.2em; box-sizing: content-box;
+}
+.stepper-btn {
+  width: 34px; height: 34px; border: 1.5px solid var(--hair-2); border-radius: 3px; background: var(--paper);
+  color: inherit; font-size: 13px; cursor: pointer;
+}
+.stepper-btn:hover:not(:disabled) { border-color: currentColor; }
+.stepper-btn:disabled { opacity: .35; cursor: default; }
+.stepper-unit { font-size: 13.5px; color: var(--ink-2); }

@@ -40,9 +40,9 @@
           <li><b>Original votes (OVs).</b> Before the draw, each option gets one OV for every ballot that approved it, deferred or not. OVs only decide who leads.</li>
           <li><b>Leader.</b> The option with the most OVs. It stays the leader for the whole draw. If the top is tied, there's no leader.</li>
           <li><b>Effective votes (EVs).</b> Each option approved without Defer gets +1 EV. If anything was marked Defer, the leader gets +1 EV instead. No option gets more than one EV per ballot. If there's no leader, Defer marks are ignored and every approved option gets an EV.</li>
-          <li><b>Stop.</b> As ballots are drawn, the first option to reach 3 EVs wins.</li>
+          <li><b>Stop.</b> As ballots are drawn, the first option to reach <span class="need-text">2 EVs</span> wins. (This threshold is adjustable below.)</li>
         </ol>
-        <p class="fine-print">if several options reach 3 EVs on the same ballot, the draw goes on until one of them holds the most EVs alone. If the box empties before anyone reaches 3 EVs, the most EVs wins, then the most OVs, then a draw by lot.</p>
+        <p class="fine-print">if several options reach <span class="need-text">3 EVs</span> on the same ballot, the draw goes on until one of them holds the most EVs alone. If the box empties before anyone reaches <span class="need-text">3 EVs</span>, the most EVs wins, then the most OVs, then a draw by lot.</p>
       </div>
     </section>
 
@@ -90,7 +90,21 @@
     <section class="part" aria-labelledby="p3">
       <div class="part-head">
         <span class="part-num">Part 3</span>
-        <h2 id="p3">The draw</h2>
+        <h2 id="p3">The winning threshold</h2>
+      </div>
+      <p class="hint">How many EVs an option needs to win.</p>
+      <div class="stepper" role="group" aria-label="EVs needed to win">
+        <input class="stepper-num" id="need" type="text" inputmode="numeric" maxlength="2" aria-label="EVs needed to win">
+        <button class="stepper-btn" type="button" data-step="-1" aria-label="Fewer EVs to win">▼</button>
+        <button class="stepper-btn" type="button" data-step="1" aria-label="More EVs to win">▲</button>
+        <span class="stepper-unit">EVs to win</span>
+      </div>
+    </section>
+
+    <section class="part" aria-labelledby="p4">
+      <div class="part-head">
+        <span class="part-num">Part 4</span>
+        <h2 id="p4">The draw</h2>
       </div>
 
       <div class="count-grid">

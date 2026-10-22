@@ -39,9 +39,10 @@ const PRESETS = [
     },
   },
 ];
-const DEFAULT_SETUP = PRESETS[1].setup;
+const DEFAULT_SETUP = PRESETS[0].setup;
 
-const S = { options: [], ballots: [], mode: 'count', total: 1000 };
+const MAX_NEED = 99;
+const S = { options: [], ballots: [], mode: 'count', total: 1000, need: 2 };
 
 /* ---------------- state & persistence ---------------- */
 
@@ -60,6 +61,7 @@ function fromPlain(p) {
   }));
   S.mode = p.m === 'percent' ? 'percent' : 'count';
   S.total = Math.min(100000, Math.max(1, Math.floor(+p.n) || 1000));
+  S.need = Math.min(MAX_NEED, Math.max(1, Math.floor(+p.w) || 2));
 }
 
 function toPlain() {
@@ -68,6 +70,7 @@ function toPlain() {
     b: S.ballots.map(b => [marksOf(b), b.copies]),
     m: S.mode,
     n: S.total,
+    w: S.need,
   };
 }
 
@@ -136,7 +139,7 @@ function oddsRequest(counts, ov, ev) {
   S.ballots.forEach((b, i) => {
     if (!isBlank(b) && counts[i] > 0) { types.push(marksOf(b)); rem.push(counts[i]); }
   });
-  return { types, rem, ov, ev };
+  return { types, rem, ov, ev, need: S.need };
 }
 
 // The full count of approvals, made before the draw.
@@ -234,7 +237,7 @@ function drawOne(quiet = false) {
   d.rem[b]--;
   d.total--;
   const marks = marksOf(S.ballots[b]);
-  const res = PAD.applyBallot(d.ov, d.ev, marks);
+  const res = PAD.applyBallot(d.ov, d.ev, marks, S.need);
   if (!res.blank) d.nonBlank--;
   d.ev = res.ev;
   d.step++;
@@ -453,8 +456,8 @@ function explainHtml(entry) {
   }
   if (o) {
     let text;
-    if (o.kind === 'ev') text = res.ev[o.winner] === 3
-      ? `${nameTag(o.winner)} reaches 3 EVs and wins.`
+    if (o.kind === 'ev') text = res.ev[o.winner] === S.need
+      ? `${nameTag(o.winner)} reaches ${plural(S.need, 'EV')} and wins.`
       : `${nameTag(o.winner)} pulls ahead with ${plural(res.ev[o.winner], 'EV')} and wins.`;
     else {
       const tiedOnEv = res.ev.filter(v => v === res.ev[o.winner]).length > 1;
@@ -625,6 +628,7 @@ $('#presets').addEventListener('click', e => {
   if (!btn) return;
   fromPlain(PRESETS[+btn.dataset.preset].setup);
   renderMode();
+  renderNeed();
   configChanged({ options: true });
 });
 
@@ -711,6 +715,33 @@ $('#electorate').addEventListener('input', e => {
   S.total = Math.min(100000, Math.max(1, Math.floor(+e.target.value) || 1));
   configChanged({ ballots: false });
 });
+document.querySelectorAll('.stepper-btn').forEach(btn => btn.addEventListener('click', () => {
+  const n = Math.min(MAX_NEED, Math.max(1, S.need + +btn.dataset.step));
+  if (n === S.need) return;
+  S.need = n;
+  renderNeed();
+  configChanged({ ballots: false });
+}));
+$('#need').addEventListener('input', e => {
+  const n = Math.floor(+e.target.value);
+  if (!(n >= 1) || n === S.need) return;
+  S.need = Math.min(MAX_NEED, n);
+  renderNeed();
+  configChanged({ ballots: false });
+});
+$('#need').addEventListener('change', renderNeed); // put back a valid number if the box is left empty or invalid
+$('#need').addEventListener('keydown', e => {
+  const step = { ArrowUp: 1, ArrowDown: -1 }[e.key];
+  if (step) { e.preventDefault(); document.querySelector(`.stepper-btn[data-step="${step}"]`).click(); }
+});
+function renderNeed() {
+  if (document.activeElement !== $('#need') || +$('#need').value !== S.need) $('#need').value = S.need;
+  document.querySelectorAll('.stepper-btn').forEach(b => {
+    b.disabled = S.need + +b.dataset.step < 1 || S.need + +b.dataset.step > MAX_NEED;
+  });
+  document.querySelectorAll('.need-text').forEach(el => { el.textContent = plural(S.need, 'EV'); });
+}
+
 function renderMode() {
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === S.mode));
   $('#electorateWrap').hidden = S.mode !== 'percent';
@@ -750,6 +781,7 @@ try { const t = localStorage.getItem('pad-theme'); if (t) document.documentEleme
 load();
 renderOptions();
 renderMode();
+renderNeed();
 renderBallots();
 renderDraw(false);
 schedulePriorOdds();

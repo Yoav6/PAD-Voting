@@ -24,7 +24,7 @@
 
   // Draw one ballot and hand out its EVs (at most one per option).
   // `ov` is the full count, so the leader is the same for the whole draw.
-  function applyBallot(ov, ev, marks) {
+  function applyBallot(ov, ev, marks, need) {
     const k = ov.length;
     const res = {
       ov, ev: ev.slice(), leader: leaderOf(ov), tie: false, blank: !marks.some(Boolean),
@@ -45,9 +45,9 @@
       res.ev[i]++;
       res.gains.push(i);
     }
-    // An option wins once it holds the most EVs alone, with at least 3. A tie at the top keeps the draw going.
+    // An option wins once it holds the most EVs alone, with at least `need`. A tie at the top keeps the draw going.
     const top = Math.max(...res.ev);
-    if (top >= 3 && res.gains.some(i => res.ev[i] === top)) {
+    if (top >= need && res.gains.some(i => res.ev[i] === top)) {
       const atTop = res.ev.map((v, i) => (v === top ? i : -1)).filter(i => i >= 0);
       if (atTop.length === 1) res.winner = atTop[0];
       else res.tiedAtTop = atTop;
@@ -72,7 +72,7 @@
   // Exact win probabilities over every possible draw order (ballots drawn without replacement).
   // Blank ballots never change anything, so they are left out of `types` by the caller.
   // OVs are the full count and never change, so the memo key is remaining counts + EVs.
-  function solveExact(types, rem, ov, ev, budget) {
+  function solveExact(types, rem, ov, ev, need, budget) {
     const k = ov.length;
     const memo = new Map();
     let nodes = 0;
@@ -93,7 +93,7 @@
       for (let t = 0; t < types.length; t++) {
         if (!rem[t]) continue;
         const p = rem[t] / total;
-        const r = applyBallot(ov, ev, types[t]);
+        const r = applyBallot(ov, ev, types[t], need);
         if (r.winner >= 0) { out[r.winner] += p; continue; }
         rem[t]--;
         const sub = rec(total - 1, r.ev);
@@ -113,7 +113,7 @@
   }
 
   // Fallback when there are too many paths to enumerate: simulate lots of draws.
-  function monteCarlo(types, rem, ov, ev, maxSims, maxMs) {
+  function monteCarlo(types, rem, ov, ev, need, maxSims, maxMs) {
     const k = ov.length;
     const out = new Float64Array(k);
     const start = Date.now();
@@ -127,7 +127,7 @@
         let x = Math.random() * total, t = 0;
         while (x >= r[t]) { x -= r[t]; t++; }
         r[t]--; total--;
-        const res = applyBallot(ov, e, types[t]);
+        const res = applyBallot(ov, e, types[t], need);
         if (res.winner >= 0) { out[res.winner]++; break; }
         e = res.ev;
       }
@@ -137,10 +137,10 @@
   }
 
   function computeOdds(req) {
-    const { types, rem, ov, ev } = req;
-    const probs = solveExact(types, rem.slice(), ov, ev, 300000);
+    const { types, rem, ov, ev, need } = req;
+    const probs = solveExact(types, rem.slice(), ov, ev, need, 300000);
     if (probs) return { probs, method: 'exact' };
-    const mc = monteCarlo(types, rem, ov, ev, 400000, 1500);
+    const mc = monteCarlo(types, rem, ov, ev, need, 400000, 1500);
     return { probs: mc.probs, method: 'montecarlo', sims: mc.sims };
   }
 
