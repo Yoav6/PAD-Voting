@@ -9,18 +9,37 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 let uid = 1;
 const newId = () => 'id' + uid++;
 
-const DEFAULT_SETUP = {
-  o: [['Riverside Park', 0], ['New Library', 1], ['Bike Lanes', 2], ['Community Pool', 3]],
-  b: [
-    [[1, 2, 0, 0], 30],
-    [[0, 1, 1, 0], 25],
-    [[0, 0, 2, 2], 20],
-    [[0, 0, 0, 1], 15],
-    [[2, 0, 1, 0], 10],
-  ],
-  m: 'count',
-  n: 1000,
-};
+const PRESETS = [
+  {
+    name: 'Two options, one deferring bloc',
+    setup: {
+      o: [['Riverside Park', 0], ['New Library', 1]],
+      b: [
+        [[1, 0], 60],
+        [[0, 1], 30],
+        [[0, 2], 10],
+      ],
+      m: 'count',
+      n: 1000,
+    },
+  },
+  {
+    name: 'Four options, mixed ballots',
+    setup: {
+      o: [['Riverside Park', 0], ['New Library', 1], ['Bike Lanes', 2], ['Community Pool', 3]],
+      b: [
+        [[1, 2, 0, 0], 30],
+        [[0, 1, 1, 0], 25],
+        [[0, 0, 2, 2], 20],
+        [[0, 0, 0, 1], 15],
+        [[2, 0, 1, 0], 10],
+      ],
+      m: 'count',
+      n: 1000,
+    },
+  },
+];
+const DEFAULT_SETUP = PRESETS[1].setup;
 
 const S = { options: [], ballots: [], mode: 'count', total: 1000 };
 
@@ -598,6 +617,16 @@ function configChanged({ options = false, ballots = true } = {}) {
   schedulePriorOdds();
   save();
 }
+
+$('#presets').innerHTML = PRESETS.map((p, i) =>
+  `<button class="btn" type="button" data-preset="${i}">${esc(p.name)}</button>`).join('');
+$('#presets').addEventListener('click', e => {
+  const btn = e.target.closest('[data-preset]');
+  if (!btn) return;
+  fromPlain(PRESETS[+btn.dataset.preset].setup);
+  renderMode();
+  configChanged({ options: true });
+});
 
 $('#options').addEventListener('input', e => {
   const li = e.target.closest('.option');
