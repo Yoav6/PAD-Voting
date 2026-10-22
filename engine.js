@@ -16,10 +16,11 @@
   }
 
   // Draw one ballot: OVs first, then the leader, then EVs (at most one per option).
-  function applyBallot(ov, ev, marks) {
+  // `pending` counts deferrals made while the top was tied; they all go to the next unique leader.
+  function applyBallot(ov, ev, marks, pending = 0) {
     const k = ov.length;
     const res = {
-      ov: ov.slice(), ev: ev.slice(), leader: -1, tie: false, blank: true,
+      ov: ov.slice(), ev: ev.slice(), pending, converted: 0, pendingAdded: false, leader: -1, tie: false, blank: true,
       direct: [], deferred: [], deferTo: -1, gains: [], winner: -1, tiedAtTop: [],
     };
     for (let i = 0; i < k; i++) if (marks[i]) { res.ov[i]++; res.blank = false; }
@@ -27,16 +28,26 @@
     if (res.blank) return res;
     res.tie = res.leader < 0;
 
+    // A unique leader emerged: it collects every pending deferral, before this ballot's own EVs.
+    if (!res.tie && res.pending) {
+      res.converted = res.pending;
+      res.ev[res.leader] += res.pending;
+      res.pending = 0;
+    }
+
     const gain = new Uint8Array(k);
     for (let i = 0; i < k; i++) {
       if (!marks[i]) continue;
-      if (marks[i] === 2 && !res.tie) res.deferred.push(i);
+      if (marks[i] === 2) res.deferred.push(i);
       else { gain[i] = 1; res.direct.push(i); }
     }
-    if (res.deferred.length) { res.deferTo = res.leader; gain[res.leader] = 1; }
+    if (res.deferred.length) {
+      if (res.tie) { res.pending++; res.pendingAdded = true; }
+      else { res.deferTo = res.leader; gain[res.leader] = 1; }
+    }
     for (let i = 0; i < k; i++) {
-      if (!gain[i]) continue;
-      res.ev[i]++;
+      if (!gain[i] && !(res.converted && i === res.leader)) continue;
+      if (gain[i]) res.ev[i]++;
       res.gains.push(i);
     }
     // An option wins once it holds the most EVs alone, with at least 3. A tie at the top keeps the draw going.
@@ -65,20 +76,20 @@
 
   // Exact win probabilities over every possible draw order (ballots drawn without replacement).
   // Blank ballots never change anything, so they are left out of `types` by the caller.
-  // OVs are fully determined by which ballots are out of the box, so the memo key is remaining counts + EVs.
-  function solveExact(types, rem, ov, ev, budget) {
+  // OVs are fully determined by which ballots are out of the box, so the memo key is remaining counts + EVs + pending.
+  function solveExact(types, rem, ov, ev, pending, budget) {
     const k = ov.length;
     const memo = new Map();
     let nodes = 0;
     const OVER = {};
 
-    function rec(total, ov, ev) {
+    function rec(total, ov, ev, pending) {
       if (total === 0) {
         const out = new Float64Array(k);
         credit(out, fallbackWinners(ov, ev), 1);
         return out;
       }
-      const key = rem.join(',') + '|' + ev.join(',');
+      const key = rem.join(',') + '|' + ev.join(',') + '|' + pending;
       const hit = memo.get(key);
       if (hit) return hit;
       if (++nodes > budget) throw OVER;
@@ -87,10 +98,10 @@
       for (let t = 0; t < types.length; t++) {
         if (!rem[t]) continue;
         const p = rem[t] / total;
-        const r = applyBallot(ov, ev, types[t]);
+        const r = applyBallot(ov, ev, types[t], pending);
         if (r.winner >= 0) { out[r.winner] += p; continue; }
         rem[t]--;
-        const sub = rec(total - 1, r.ov, r.ev);
+        const sub = rec(total - 1, r.ov, r.ev, r.pending);
         rem[t]++;
         for (let i = 0; i < k; i++) out[i] += p * sub[i];
       }
@@ -99,7 +110,7 @@
     }
 
     try {
-      return Array.from(rec(rem.reduce((a, b) => a + b, 0), ov, ev));
+      return Array.from(rec(rem.reduce((a, b) => a + b, 0), ov, ev, pending));
     } catch (e) {
       if (e === OVER) return null;
       throw e;
@@ -107,7 +118,7 @@
   }
 
   // Fallback when there are too many paths to enumerate: simulate lots of draws.
-  function monteCarlo(types, rem, ov, ev, maxSims, maxMs) {
+  function monteCarlo(types, rem, ov, ev, pending, maxSims, maxMs) {
     const k = ov.length;
     const out = new Float64Array(k);
     const start = Date.now();
@@ -115,15 +126,15 @@
     let sims = 0;
     while (sims < maxSims && (sims % 2000 || Date.now() - start < maxMs)) {
       const r = rem.slice();
-      let total = total0, o = ov, e = ev;
+      let total = total0, o = ov, e = ev, pd = pending;
       for (;;) {
         if (total === 0) { credit(out, fallbackWinners(o, e), 1); break; }
         let x = Math.random() * total, t = 0;
         while (x >= r[t]) { x -= r[t]; t++; }
         r[t]--; total--;
-        const res = applyBallot(o, e, types[t]);
+        const res = applyBallot(o, e, types[t], pd);
         if (res.winner >= 0) { out[res.winner]++; break; }
-        o = res.ov; e = res.ev;
+        o = res.ov; e = res.ev; pd = res.pending;
       }
       sims++;
     }
@@ -131,10 +142,10 @@
   }
 
   function computeOdds(req) {
-    const { types, rem, ov, ev } = req;
-    const probs = solveExact(types, rem.slice(), ov, ev, 300000);
+    const { types, rem, ov, ev, pending = 0 } = req;
+    const probs = solveExact(types, rem.slice(), ov, ev, pending, 300000);
     if (probs) return { probs, method: 'exact' };
-    const mc = monteCarlo(types, rem, ov, ev, 400000, 1500);
+    const mc = monteCarlo(types, rem, ov, ev, pending, 400000, 1500);
     return { probs: mc.probs, method: 'montecarlo', sims: mc.sims };
   }
 
