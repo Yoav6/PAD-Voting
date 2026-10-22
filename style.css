@@ -97,7 +97,7 @@ b.mp-chip, .mp-chip {
 .theme-toggle:hover { background: var(--paper-2); }
 
 /* ---------- sections ---------- */
-main { padding-top: 28px; padding-bottom: 20px; }
+main { padding-top: 40px; padding-bottom: 20px; }
 .part, .instructions {
   background: var(--paper);
   border: 1px solid var(--hair);
