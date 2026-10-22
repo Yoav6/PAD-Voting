@@ -1,6 +1,6 @@
 /* PAD voting engine.
  * Loaded by the page as a normal script, and again as a Web Worker that computes the odds.
- * A ballot is an array of marks, one per option: 0 = not approved, 1 = approved, 2 = approved with MP.
+ * A ballot is an array of marks, one per option: 0 = not approved, 1 = approved, 2 = approved with Defer.
  */
 (function (global) {
   'use strict';

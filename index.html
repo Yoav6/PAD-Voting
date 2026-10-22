@@ -34,12 +34,12 @@
       <h2 id="rulesTitle">Instructions to voters</h2>
       <div class="rules">
         <div class="rule-intro">
-          <p>Every voter approves any options they like. Next to an approval they may also mark <b class="mp-chip">MP</b>, meaning <em>“I'll defer to whoever is leading.”</em> Ballots are then drawn from the box one at a time, at random, and each draw goes through four steps:</p>
+          <p>Every voter approves any options they like. Next to an approval they may also tick <b class="defer-ref"><i class="tick on" aria-hidden="true"></i>Defer</b>, meaning <em>“I'll defer to whoever is leading.”</em> Ballots are then drawn from the box one at a time, at random, and each draw goes through four steps:</p>
         </div>
         <ol class="rule-steps">
-          <li><b>Original votes (OVs).</b> Every option the ballot approved gets +1 OV, MP or not. OVs only decide who leads.</li>
+          <li><b>Original votes (OVs).</b> Every option the ballot approved gets +1 OV, deferred or not. OVs only decide who leads.</li>
           <li><b>Leader.</b> The option with the most OVs so far. If the top is tied, there's no leader.</li>
-          <li><b>Effective votes (EVs).</b> Each option approved without MP gets +1 EV. If anything was marked MP, the leader gets +1 EV instead, once at most. No option gets more than one EV per ballot. If there's no leader, MP marks are ignored and every approved option gets an EV.</li>
+          <li><b>Effective votes (EVs).</b> Each option approved without Defer gets +1 EV. If anything was marked Defer, the leader gets +1 EV instead, once at most. No option gets more than one EV per ballot. If there's no leader, Defer marks are ignored and every approved option gets an EV.</li>
           <li><b>Stop.</b> The first option to reach 2 EVs wins.</li>
         </ol>
         <p class="fine-print"><b>Two cases the rules leave open, settled here:</b> if several options reach 2 EVs on the same ballot, the draw goes on until one of them holds the most EVs alone. If the box empties before anyone reaches 2 EVs, the most EVs wins, then the most OVs, then a draw by lot.</p>
@@ -65,7 +65,7 @@
         <h2 id="p2">The ballots cast</h2>
       </div>
       <div class="ballot-toolbar">
-        <p class="hint">Click an oval to approve an option, and <b class="mp-chip">MP</b> to defer that approval to the leader. Then say how many voters cast that same ballot.</p>
+        <p class="hint">Click an oval to approve an option, and tick <b class="defer-ref"><i class="tick on" aria-hidden="true"></i>Defer</b> to hand that approval to the leader. Then say how many voters cast that same ballot.</p>
         <div class="toolbar-right">
           <div class="seg" role="group" aria-label="Count copies as">
             <button type="button" data-mode="count">Voters</button>

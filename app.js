@@ -284,14 +284,14 @@ function renderBallots() {
             <button class="icon-btn" type="button" data-act="del" title="Delete ballot" aria-label="Delete ballot ${bi + 1}">✕</button>
           </span>
         </div>
-        <div class="col-heads"><span>Vote</span><span>Option</span><span>MP</span></div>
+        <div class="col-heads"><span>Vote</span><span>Option</span><span>Defer</span></div>
         <ul class="ballot-rows">
           ${opts.map((o, i) => {
             const m = b.marks[o.id] || 0;
             return `<li data-opt="${o.id}">
               <button class="oval" type="button" data-act="approve" aria-pressed="${m > 0}" aria-label="Approve ${esc(optName(i))}"></button>
               <span class="opt-name"><i class="swatch" style="${sw(i)}"></i><span>${esc(optName(i))}</span></span>
-              <button class="mpbox" type="button" data-act="mp" aria-pressed="${m === 2}" aria-label="Mark ${esc(optName(i))} as MP" title="MP: defer this approval to the current leader">MP</button>
+              <button class="tick" type="button" data-act="defer" aria-pressed="${m === 2}" aria-label="Defer ${esc(optName(i))} to the leader" title="Defer this approval to the current leader"></button>
             </li>`;
           }).join('')}
         </ul>
@@ -372,7 +372,7 @@ function renderTally(animate) {
     </div>`;
   }).join('');
   let note = '';
-  if (draw && draw.step && !draw.done) note = leader >= 0 ? '' : '<p class="tally-note">No leader right now: the top is tied, so MP marks will be ignored.</p>';
+  if (draw && draw.step && !draw.done) note = leader >= 0 ? '' : '<p class="tally-note">No leader right now: the top is tied, so Defer marks will be ignored.</p>';
   $('#tally').innerHTML = `<div class="tally-row head"><span>Option</span><span>OV</span><span>EV</span></div>${rows}${note}`;
 }
 
@@ -384,7 +384,7 @@ function slipHtml(entry) {
     <ul>${S.options.map((o, i) => `<li>
       <span class="oval" aria-pressed="${marks[i] > 0}"></span>
       <span class="opt-name"><i class="swatch" style="${sw(i)}"></i><span>${esc(optName(i))}</span></span>
-      ${marks[i] === 2 ? '<span class="mp-tag">MP</span>' : '<span></span>'}
+      ${marks[i] === 2 ? '<span class="defer-ref"><i class="tick on" aria-hidden="true"></i>Defer</span>' : '<span></span>'}
     </li>`).join('')}</ul>
     ${blank ? '<p class="blank-note">Blank ballot: approves nothing.</p>' : ''}
   </div>`;
@@ -403,14 +403,14 @@ function explainHtml(entry) {
       const top = Math.max(...res.ov);
       lines.push(['Leader', `None. ${listNames(res.ov.map((v, i) => (v === top ? i : -1)).filter(i => i >= 0))} are tied at ${plural(top, 'OV')}.`]);
     }
-    const anyMp = marks.some(m => m === 2);
-    if (res.tie && anyMp) lines.push(['EVs', `With no leader, the MP marks are ignored: +1 to ${listNames(res.direct)}.`]);
+    const anyDefer = marks.some(m => m === 2);
+    if (res.tie && anyDefer) lines.push(['EVs', `With no leader, the Defer marks are ignored: +1 to ${listNames(res.direct)}.`]);
     else {
       const parts = [];
       if (res.direct.length) parts.push(`+1 to ${listNames(res.direct)} (approved directly).`);
       if (res.deferred.length) {
         const already = res.direct.includes(res.deferTo);
-        parts.push(`${listNames(res.deferred)} marked MP, so ${already
+        parts.push(`${listNames(res.deferred)} marked Defer, so ${already
           ? `the support defers to the leader ${nameTag(res.deferTo)}, which already got its EV from this ballot. Nothing extra.`
           : `the support defers to the leader: +1 to ${nameTag(res.deferTo)}.`}`);
       }
@@ -625,14 +625,14 @@ $('#ballots').addEventListener('click', e => {
   const b = S.ballots[bi];
   if (act === 'del') S.ballots.splice(bi, 1);
   else if (act === 'dup') S.ballots.splice(bi + 1, 0, { id: newId(), marks: { ...b.marks }, copies: b.copies });
-  else if (act === 'approve' || act === 'mp') {
+  else if (act === 'approve' || act === 'defer') {
     const optId = btn.closest('li').dataset.opt;
     const m = b.marks[optId] || 0;
     b.marks[optId] = act === 'approve' ? (m ? 0 : 1) : (m === 2 ? 1 : 2);
     // re-render just this card's marks so focus stays put
     const row = btn.closest('li');
     row.querySelector('.oval').setAttribute('aria-pressed', b.marks[optId] > 0);
-    row.querySelector('.mpbox').setAttribute('aria-pressed', b.marks[optId] === 2);
+    row.querySelector('.tick').setAttribute('aria-pressed', b.marks[optId] === 2);
     card.classList.toggle('is-blank', isBlank(b));
     configChanged({ ballots: false });
     return;

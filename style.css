@@ -63,11 +63,18 @@ body {
 button, input, select { font: inherit; color: inherit; }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
 .hint { color: var(--ink-3); font-size: 13.5px; margin: 0; }
-b.mp-chip, .mp-chip {
-  display: inline-block; font: 600 11px/1 var(--mono); letter-spacing: .04em;
-  padding: 3px 5px; border: 1.5px solid var(--navy); color: var(--navy); border-radius: 3px;
-  vertical-align: 1px;
+/* checkbox used for the Defer mark: a button on ballots, a static glyph elsewhere */
+.tick {
+  position: relative; display: inline-block; width: 20px; height: 20px; padding: 0;
+  border: 1.8px solid currentColor; border-radius: 2px; background: transparent; color: inherit; vertical-align: middle;
 }
+.tick[aria-pressed="true"]::after, .tick.on::after {
+  content: ""; position: absolute; left: 30%; top: 2%; width: 34%; height: 66%;
+  border: solid currentColor; border-width: 0 2.4px 2.4px 0; transform: rotate(40deg);
+}
+.defer-ref { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; white-space: nowrap; }
+.defer-ref .tick { width: 13px; height: 13px; border-width: 1.5px; }
+.defer-ref .tick::after { border-width: 0 1.8px 1.8px 0; }
 
 /* ---------- masthead ---------- */
 .masthead {
@@ -235,13 +242,8 @@ main { padding-top: 40px; padding-bottom: 20px; }
 .oval:hover { box-shadow: 0 0 0 3px rgba(31, 58, 107, .18); }
 .opt-name { display: flex; align-items: center; gap: 7px; font-weight: 500; font-size: 14px; min-width: 0; }
 .opt-name span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mpbox {
-  justify-self: center; width: 34px; height: 22px; border: 1.5px solid rgba(29,27,22,.4); border-radius: 3px; background: transparent; cursor: pointer;
-  font: 600 10px/1 var(--mono); color: rgba(29,27,22,.35); padding: 0;
-}
-.mpbox[aria-pressed="true"] { border-color: #1f3a6b; background: #1f3a6b; color: #fffdf7; }
-.mpbox:hover { border-color: #1f3a6b; color: #1f3a6b; }
-.mpbox[aria-pressed="true"]:hover { color: #fffdf7; }
+.ballot-rows .tick { justify-self: center; color: #1d1b16; cursor: pointer; }
+.ballot-rows .tick:hover { box-shadow: 0 0 0 3px rgba(31, 58, 107, .18); }
 .copies { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding-top: 10px; font-size: 13px; color: #514c40; }
 .copies label { display: inline-flex; align-items: center; gap: 6px; }
 .copies input { background: #fffdf7; border-color: rgba(29,27,22,.3); color: #1d1b16; }
@@ -304,7 +306,7 @@ main { padding-top: 40px; padding-bottom: 20px; }
 .slip .oval { width: 22px; height: 13px; cursor: default; }
 .slip .oval:hover { box-shadow: none; }
 .slip .oval[aria-pressed="true"]::after { border-width: 0 2px 2px 0; }
-.slip .mp-tag { font: 600 10px/1 var(--mono); padding: 3px 4px; border-radius: 2px; background: #1f3a6b; color: #fffdf7; }
+.slip .defer-ref { font: 500 10px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: #514c40; }
 .slip .blank-note { margin: 8px 0 0; font-size: 13px; color: #7d7764; font-style: italic; }
 
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
