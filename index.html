@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PAD Voting</title>
+  <meta name="description" content="Simulate a Probabilistic Approval with Deference (PAD) vote: design the ballots, draw them from the box one by one, and see each option's chance of winning.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='12' width='26' height='17' rx='2' fill='%231f3a6b'/%3E%3Crect x='9' y='3' width='14' height='14' fill='%23fbf8f0' stroke='%231d1b16' stroke-width='1.5'/%3E%3Cpath d='M12 10l3 3 5-6' fill='none' stroke='%23c8312b' stroke-width='2.2'/%3E%3Crect x='7' y='12' width='18' height='2.5' fill='%23111'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- rough ink edge for the rubber stamps -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3"/></filter>
+  </svg>
+
+  <header class="masthead">
+    <div class="wrap">
+      <p class="kicker"><span>★ ★ ★</span> Official simulation ballot <span>★ ★ ★</span></p>
+      <h1>PAD Voting</h1>
+      <p class="sub">Probabilistic Approval with Deference</p>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">◐</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="instructions" aria-labelledby="rulesTitle">
+      <h2 id="rulesTitle">Instructions to voters</h2>
+      <div class="rules">
+        <div class="rule-intro">
+          <p>Every voter approves any options they like. Next to an approval they may also mark <b class="mp-chip">MP</b>, meaning <em>“I'll defer to whoever is leading.”</em> Ballots are then drawn from the box one at a time, at random, and each draw goes through four steps:</p>
+        </div>
+        <ol class="rule-steps">
+          <li><b>Original votes (OVs).</b> Every option the ballot approved gets +1 OV, MP or not. OVs only decide who leads.</li>
+          <li><b>Leader.</b> The option with the most OVs so far. If the top is tied, there's no leader.</li>
+          <li><b>Effective votes (EVs).</b> Each option approved without MP gets +1 EV. If anything was marked MP, the leader gets +1 EV instead, once at most. No option gets more than one EV per ballot. If there's no leader, MP marks are ignored and every approved option gets an EV.</li>
+          <li><b>Stop.</b> The first option to reach 2 EVs wins.</li>
+        </ol>
+        <p class="fine-print"><b>Two cases the rules leave open, settled here:</b> if two options reach 2 EVs on the same ballot, the winner is drawn by lot. If the box empties before anyone reaches 2 EVs, the most EVs wins, then the most OVs, then a draw by lot.</p>
+      </div>
+    </section>
+
+    <section class="part" aria-labelledby="p1">
+      <div class="part-head">
+        <span class="part-num">Part 1</span>
+        <h2 id="p1">The options on the ballot</h2>
+      </div>
+      <ul class="options" id="options"></ul>
+      <form class="add-option" id="addOption">
+        <input id="newOptionName" type="text" maxlength="40" placeholder="Name a new option…" aria-label="New option name">
+        <button class="btn" type="submit">+ Add option</button>
+        <span class="hint" id="optionHint"></span>
+      </form>
+    </section>
+
+    <section class="part" aria-labelledby="p2">
+      <div class="part-head">
+        <span class="part-num">Part 2</span>
+        <h2 id="p2">The ballots cast</h2>
+      </div>
+      <div class="ballot-toolbar">
+        <p class="hint">Click an oval to approve an option, and <b class="mp-chip">MP</b> to defer that approval to the leader. Then say how many voters cast that same ballot.</p>
+        <div class="toolbar-right">
+          <div class="seg" role="group" aria-label="Count copies as">
+            <button type="button" data-mode="count">Voters</button>
+            <button type="button" data-mode="percent">Percent</button>
+          </div>
+          <label class="electorate" id="electorateWrap">of <input type="number" id="electorate" min="1" max="100000" step="1"> voters</label>
+        </div>
+      </div>
+      <div class="ballots" id="ballots"></div>
+      <p class="totals" id="totals"></p>
+    </section>
+
+    <section class="part" aria-labelledby="p3">
+      <div class="part-head">
+        <span class="part-num">Part 3</span>
+        <h2 id="p3">The draw</h2>
+      </div>
+
+      <div class="count-grid">
+        <div class="stage-card">
+          <div class="stage">
+            <div class="box-wrap">
+              <div class="box" aria-hidden="true">
+                <div class="box-lid"><span class="slot"></span></div>
+                <div class="box-body"><span class="box-seal">★</span><span class="box-word">Ballots</span></div>
+              </div>
+              <p class="box-count" id="boxCount"></p>
+            </div>
+            <div class="drawn" id="drawn" aria-live="polite"></div>
+          </div>
+
+          <div class="controls">
+            <button class="btn btn-primary" id="btnDraw" type="button">Draw a ballot</button>
+            <button class="btn" id="btnAuto" type="button">▶ Auto-draw</button>
+            <button class="btn" id="btnFinish" type="button">Skip to result</button>
+            <button class="btn btn-ghost" id="btnReset" type="button">↺ New draw</button>
+            <label class="speed">Speed
+              <select id="speed">
+                <option value="2200">Slow</option>
+                <option value="1300" selected>Normal</option>
+                <option value="500">Fast</option>
+              </select>
+            </label>
+          </div>
+          <p class="randomness">Draws use your browser's cryptographic random number generator.</p>
+
+          <div class="explain" id="explain"></div>
+        </div>
+
+        <div class="side">
+          <div class="card tally-card">
+            <div class="card-head">
+              <h3>Tally sheet</h3>
+              <span class="legend-mini"><span>OV = original votes</span><span>EV = effective votes</span></span>
+            </div>
+            <div class="tally" id="tally"></div>
+          </div>
+
+          <div class="card odds-card">
+            <div class="card-head">
+              <h3 id="oddsTitle">Chance of winning</h3>
+              <span class="odds-legend" id="oddsLegend"></span>
+            </div>
+            <div class="odds" id="odds"></div>
+            <p class="odds-method" id="oddsMethod"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card log-card">
+        <div class="card-head"><h3>Record of the draw</h3><span class="hint" id="logCount"></span></div>
+        <ol class="log" id="log"></ol>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot wrap">
+    <span>PAD Voting simulator</span>
+    <button class="btn btn-ghost btn-small" id="btnShare" type="button">Copy link to this setup</button>
+  </footer>
+
+  <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
