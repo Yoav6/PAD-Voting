@@ -34,13 +34,13 @@
       <h2 id="rulesTitle">Instructions to voters</h2>
       <div class="rules">
         <div class="rule-intro">
-          <p>Every voter approves any options they like. Next to an approval they may also tick <b class="defer-ref"><i class="tick on" aria-hidden="true"></i>Defer</b>, meaning <em>“I'll defer to whoever is leading.”</em> Ballots are then drawn from the box one at a time, at random, and each draw goes through four steps:</p>
+          <p>Every voter approves any options they like. Next to an approval they may also tick <b class="defer-ref"><i class="tick on" aria-hidden="true"></i>Defer</b>, meaning <em>“I'll defer to whoever is leading.”</em> First every ballot is counted to find the leader. Then ballots are drawn from the box one at a time, at random, until one option wins:</p>
         </div>
         <ol class="rule-steps">
-          <li><b>Original votes (OVs).</b> Every option the ballot approved gets +1 OV, deferred or not. OVs only decide who leads.</li>
-          <li><b>Leader.</b> The option with the most OVs so far. If the top is tied, there's no leader.</li>
-          <li><b>Effective votes (EVs).</b> Each option approved without Defer gets +1 EV. If anything was marked Defer, the leader gets +1 EV instead. No option gets more than one EV per ballot. If there's no leader, the ballot's Defer support goes to <b>Pending</b> instead (+1 per ballot). The moment one option leads alone, it collects every pending EV.</li>
-          <li><b>Stop.</b> The first option to reach 3 EVs wins.</li>
+          <li><b>Original votes (OVs).</b> Before the draw, each option gets one OV for every ballot that approved it, deferred or not. OVs only decide who leads.</li>
+          <li><b>Leader.</b> The option with the most OVs. It stays the leader for the whole draw. If the top is tied, there's no leader.</li>
+          <li><b>Effective votes (EVs).</b> Each option approved without Defer gets +1 EV. If anything was marked Defer, the leader gets +1 EV instead. No option gets more than one EV per ballot. If there's no leader, Defer marks are ignored and every approved option gets an EV.</li>
+          <li><b>Stop.</b> As ballots are drawn, the first option to reach 3 EVs wins.</li>
         </ol>
         <p class="fine-print">if several options reach 3 EVs on the same ballot, the draw goes on until one of them holds the most EVs alone. If the box empties before anyone reaches 3 EVs, the most EVs wins, then the most OVs, then a draw by lot.</p>
       </div>

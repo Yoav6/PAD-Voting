@@ -112,13 +112,16 @@ function runOdds(req, cb) {
 }
 
 // Only ballots that approve something matter for the odds; blank ones never change the state.
-function oddsRequest(counts, ov, ev, pending = 0) {
+function oddsRequest(counts, ov, ev) {
   const types = [], rem = [];
   S.ballots.forEach((b, i) => {
     if (!isBlank(b) && counts[i] > 0) { types.push(marksOf(b)); rem.push(counts[i]); }
   });
-  return { types, rem, ov, ev, pending };
+  return { types, rem, ov, ev };
 }
+
+// The full count of approvals, made before the draw.
+const fullCount = () => PAD.countOvs(S.ballots.map(marksOf), ballotCounts());
 
 const odds = { prior: null, now: null, version: 0, loading: false };
 let oddsTimer = null;
@@ -130,7 +133,7 @@ function schedulePriorOdds() {
   clearTimeout(oddsTimer);
   oddsTimer = setTimeout(() => {
     const k = S.options.length;
-    const req = oddsRequest(ballotCounts(), Array(k).fill(0), Array(k).fill(0));
+    const req = oddsRequest(ballotCounts(), fullCount(), Array(k).fill(0));
     if (!req.types.length) { odds.loading = false; renderOdds(); return; }
     runOdds(req, res => {
       if (v !== odds.version) return;
@@ -152,7 +155,7 @@ function requestNowOdds() {
   const d = draw, entry = d.last;
   if (entry?.odds) { odds.now = entry.odds; odds.loading = false; renderOdds(); return; }
   odds.loading = true;
-  runOdds(oddsRequest(d.rem, d.ov, d.ev, d.pending), res => {
+  runOdds(oddsRequest(d.rem, d.ov, d.ev), res => {
     if (entry) entry.odds = res;
     if (draw !== d || d.last !== entry) return;
     odds.now = res;
@@ -181,9 +184,8 @@ function newDraw() {
     rem: counts.slice(),
     total: sum(counts),
     nonBlank: sum(counts.filter((_, i) => !isBlank(S.ballots[i]))),
-    ov: Array(k).fill(0),
+    ov: fullCount(),
     ev: Array(k).fill(0),
-    pending: 0,
   };
   return {
     ...start,
@@ -213,11 +215,9 @@ function drawOne(quiet = false) {
   d.rem[b]--;
   d.total--;
   const marks = marksOf(S.ballots[b]);
-  const res = PAD.applyBallot(d.ov, d.ev, marks, d.pending);
+  const res = PAD.applyBallot(d.ov, d.ev, marks);
   if (!res.blank) d.nonBlank--;
-  d.ov = res.ov;
   d.ev = res.ev;
-  d.pending = res.pending;
   d.step++;
   const entry = { step: d.step, ballot: b, marks, res, outcome: null };
 
@@ -228,7 +228,7 @@ function drawOne(quiet = false) {
     entry.outcome = { kind: 'exhausted', winner: c.length === 1 ? c[0] : c[randInt(c.length)], among: c };
   }
   if (entry.outcome) { d.done = true; d.winner = entry.outcome.winner; stopAuto(); }
-  entry.after = { rem: d.rem.slice(), total: d.total, nonBlank: d.nonBlank, ov: d.ov, ev: d.ev, pending: d.pending };
+  entry.after = { rem: d.rem.slice(), total: d.total, nonBlank: d.nonBlank, ov: d.ov, ev: d.ev };
   d.log.push(entry);
   d.last = entry;
   if (quiet) return;
@@ -251,7 +251,7 @@ function goTo(pos) {
   if (!d || pos < 0 || pos > d.log.length || pos === d.step) return;
   stopAuto();
   const s = pos ? d.log[pos - 1].after : d.start;
-  Object.assign(d, { rem: s.rem.slice(), total: s.total, nonBlank: s.nonBlank, ov: s.ov, ev: s.ev, pending: s.pending, step: pos });
+  Object.assign(d, { rem: s.rem.slice(), total: s.total, nonBlank: s.nonBlank, ov: s.ov, ev: s.ev, step: pos });
   d.last = pos ? d.log[pos - 1] : null;
   d.done = !!d.last?.outcome;
   d.winner = d.done ? d.last.outcome.winner : -1;
@@ -368,30 +368,23 @@ const CHECK = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" strok
 
 function renderTally(animate) {
   const k = S.options.length;
-  const ov = draw ? draw.ov : Array(k).fill(0);
+  const ov = draw ? draw.ov : fullCount();
   const ev = draw ? draw.ev : Array(k).fill(0);
-  const leader = draw && draw.step ? PAD.leaderOf(ov) : -1;
+  const leader = sum(ov) ? PAD.leaderOf(ov) : -1;
   const gains = animate && draw?.last ? draw.last.res.gains : [];
   const rows = S.options.map((o, i) => {
     const isWin = draw?.done && draw.winner === i;
     return `<div class="tally-row ${isWin ? 'is-winner' : ''} ${gains.includes(i) ? 'gained' : ''}">
-      <div class="tally-name"><i class="swatch" style="${sw(i)}"></i><span class="n">${esc(optName(i))}</span>${leader === i && !draw.done ? '<span class="leads">Leads</span>' : ''}${isWin ? '<span class="stamp">Elected</span>' : ''}</div>
+      <div class="tally-name"><i class="swatch" style="${sw(i)}"></i><span class="n">${esc(optName(i))}</span>${leader === i && !draw?.done ? '<span class="leads">Leads</span>' : ''}${isWin ? '<span class="stamp">Elected</span>' : ''}</div>
       <div class="ov" title="${ov[i]} original vote${ov[i] === 1 ? '' : 's'}"><span class="num">${ov[i]}</span></div>
       <div class="evs" title="${ev[i]} effective vote${ev[i] === 1 ? '' : 's'}">
         ${[0, 1].map(j => `<span class="evbox ${ev[i] > j ? 'on' : ''} ${gains.includes(i) && ev[i] === j + 1 ? 'new' : ''}" style="${sw(i)}">${CHECK}</span>`).join('')}${ev[i] > 2 ? `<span class="evmore">+${ev[i] - 2}</span>` : ''}
       </div>
     </div>`;
   }).join('');
-  const pending = draw ? draw.pending : 0;
-  const pendingNew = animate && draw?.last?.res.pendingAdded;
-  const pendingRow = `<div class="tally-row pending-row ${pendingNew ? 'gained' : ''}">
-      <div class="tally-name"><span class="n">Pending</span><span class="muted">for the next leader</span></div>
-      <div></div>
-      <div class="evs" title="${pending} pending deferral${pending === 1 ? '' : 's'}"><span class="num">${pending}</span></div>
-    </div>`;
   let note = '';
-  if (draw && draw.step && !draw.done) note = leader >= 0 ? '' : '<p class="tally-note">No leader right now: the top is tied, so Defer marks go to Pending until one option leads alone.</p>';
-  $('#tally').innerHTML = `<div class="tally-row head"><span>Option</span><span>OV</span><span>EV</span></div>${rows}${pendingRow}${note}`;
+  if (sum(ov) && leader < 0 && !draw?.done) note = '<p class="tally-note">No leader: the full count is tied at the top, so Defer marks will be ignored.</p>';
+  $('#tally').innerHTML = `<div class="tally-row head"><span>Option</span><span>OV</span><span>EV</span></div>${rows}${note}`;
 }
 
 function slipHtml(entry) {
@@ -414,25 +407,24 @@ function explainHtml(entry) {
   if (res.blank) {
     lines.push(['Result', 'A blank ballot. It approves nothing, so nothing changes.']);
   } else {
-    const approved = marks.map((m, i) => (m ? i : -1)).filter(i => i >= 0);
-    lines.push(['OVs', `+1 to ${listNames(approved)}.`]);
-    if (res.leader >= 0) lines.push(['Leader', `${nameTag(res.leader)} with ${plural(res.ov[res.leader], 'OV')}.`]);
-    else {
-      const top = Math.max(...res.ov);
-      lines.push(['Leader', `None. ${listNames(res.ov.map((v, i) => (v === top ? i : -1)).filter(i => i >= 0))} are tied at ${plural(top, 'OV')}.`]);
+    const anyDefer = marks.some(m => m === 2);
+    if (anyDefer) {
+      if (res.leader >= 0) lines.push(['Leader', `${nameTag(res.leader)}, with ${plural(res.ov[res.leader], 'OV')} in the full count.`]);
+      else {
+        const top = Math.max(...res.ov);
+        lines.push(['Leader', `None. ${listNames(res.ov.map((v, i) => (v === top ? i : -1)).filter(i => i >= 0))} are tied at ${plural(top, 'OV')} in the full count.`]);
+      }
     }
-    if (res.converted) lines.push(['Pending', `${nameTag(res.leader)} now leads alone and collects the ${plural(res.converted, 'pending EV')}.`]);
-    {
+    if (res.tie && anyDefer) lines.push(['EVs', `With no leader, the Defer marks are ignored: +1 to ${listNames(res.direct)}.`]);
+    else {
       const parts = [];
       if (res.direct.length) parts.push(`+1 to ${listNames(res.direct)} (approved directly).`);
-      if (res.deferred.length && !res.tie) {
+      if (res.deferred.length) {
         const already = res.direct.includes(res.deferTo);
         parts.push(`${listNames(res.deferred)} marked Defer, so ${already
           ? `the support defers to the leader ${nameTag(res.deferTo)}, which already got its EV from this ballot. Nothing extra.`
           : `the support defers to the leader: +1 to ${nameTag(res.deferTo)}.`}`);
       }
-      if (res.pendingAdded) parts.push(`${listNames(res.deferred)} marked Defer, but there's no leader, so +1 to Pending (now ${res.pending}).`);
-      if (!parts.length) parts.push('Nothing.');
       lines.push(['EVs', parts.join(' ')]);
     }
   }
@@ -506,9 +498,8 @@ function renderLog() {
     let what;
     if (r.blank) what = '<span class="muted">blank, no effect</span>';
     else {
-      what = `<span>OV ${e.marks.map((m, i) => (m ? i : -1)).filter(i => i >= 0).map(nameTag).join(' ')}</span>`;
-      if (r.gains.length) what += `<span class="ev-gain">EV ${r.gains.map(i => nameTag(i) + (r.converted && i === r.leader ? ` <span class="muted">(+${r.converted} pending)</span>` : '') + (i === r.deferTo && !r.direct.includes(i) ? ' <span class="muted">(deferred)</span>' : '')).join(' ')}</span>`;
-      if (r.pendingAdded) what += '<span class="muted">+1 pending</span>';
+      what = `<span>Approves ${e.marks.map((m, i) => (m ? i : -1)).filter(i => i >= 0).map(nameTag).join(' ')}</span>`;
+      what += `<span class="ev-gain">EV ${r.gains.map(i => nameTag(i) + (i === r.deferTo && !r.direct.includes(i) ? ' <span class="muted">(deferred)</span>' : '')).join(' ')}</span>`;
     }
     const cls = i + 1 === draw.step ? 'current' : i >= draw.step ? 'future' : '';
     const final = e.outcome ? `<li class="final ${cls}"><span class="step"></span><span class="which">Result</span><span class="what">${nameTag(e.outcome.winner)} elected${e.outcome.kind === 'exhausted' ? ' (box ran out)' : ''}</span></li>` : '';
