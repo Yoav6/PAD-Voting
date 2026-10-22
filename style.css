@@ -299,7 +299,6 @@ main { padding-top: 40px; padding-bottom: 20px; }
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
 .speed { margin-left: auto; font: 500 12px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; }
 .speed select { font: 500 13px/1.2 var(--sans); text-transform: none; letter-spacing: 0; padding: 4px 6px; border: 1.5px solid var(--hair-2); background: var(--paper); border-radius: 3px; }
-.randomness { margin: 8px 0 0; font-size: 12px; color: var(--ink-3); }
 
 .explain { margin-top: 16px; border-left: 3px solid var(--ink); padding: 2px 0 2px 14px; min-height: 60px; }
 .explain h4 { margin: 0 0 8px; font: 600 15px/1.2 var(--display); letter-spacing: .1em; text-transform: uppercase; }

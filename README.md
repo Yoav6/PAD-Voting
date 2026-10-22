@@ -2,7 +2,7 @@
 
 An interactive simulator for **Probabilistic Approval with Deference (PAD)** voting.
 
-Set the options on the ballot, fill in ballots and how many voters cast each one, then draw them from the box one at a time (with real, cryptographic randomness) and watch each option's chance of winning update after every draw.
+Set the options on the ballot, fill in ballots and how many voters cast each one, then randomly draw them from the box one at a time and watch each option's chance of winning update after every draw.
 
 Live: https://yoav6.github.io/PAD-Voting/
 
