@@ -408,6 +408,9 @@ main { padding-top: 40px; padding-bottom: 20px; }
 
 /* footer, tooltip */
 .foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 36px; font: 500 12px/1 var(--display); letter-spacing: .2em; text-transform: uppercase; color: var(--ink-3); }
+.foot-info { display: flex; flex-direction: column; gap: 10px; }
+.foot-info a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.foot-info a:hover { color: var(--ink); }
 .tooltip {
   position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--paper); padding: 7px 10px; border-radius: 4px;
   font-size: 13px; line-height: 1.4; max-width: 260px; box-shadow: 0 6px 16px rgba(0,0,0,.25);
