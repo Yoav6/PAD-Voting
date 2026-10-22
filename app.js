@@ -149,10 +149,12 @@ function requestNowOdds() {
     renderOdds();
     return;
   }
-  const d = draw, step = d.step;
+  const d = draw, entry = d.last;
+  if (entry?.odds) { odds.now = entry.odds; odds.loading = false; renderOdds(); return; }
   odds.loading = true;
   runOdds(oddsRequest(d.rem, d.ov, d.ev), res => {
-    if (draw !== d || d.step !== step) return;
+    if (entry) entry.odds = res;
+    if (draw !== d || d.last !== entry) return;
     odds.now = res;
     odds.loading = false;
     renderOdds();
@@ -175,12 +177,17 @@ function randInt(n) {
 function newDraw() {
   const counts = ballotCounts();
   const k = S.options.length;
-  return {
+  const start = {
     rem: counts.slice(),
     total: sum(counts),
     nonBlank: sum(counts.filter((_, i) => !isBlank(S.ballots[i]))),
     ov: Array(k).fill(0),
     ev: Array(k).fill(0),
+  };
+  return {
+    ...start,
+    rem: counts.slice(),
+    start,
     step: 0,
     log: [],
     last: null,
@@ -199,6 +206,7 @@ function drawOne(quiet = false) {
   if (!canDraw()) return;
   if (!draw) draw = newDraw();
   const d = draw;
+  d.log.length = d.step; // drawing from the middle of the record forgets everything after it
   let x = randInt(d.total), b = 0;
   while (x >= d.rem[b]) { x -= d.rem[b]; b++; }
   d.rem[b]--;
@@ -218,6 +226,7 @@ function drawOne(quiet = false) {
     entry.outcome = { kind: 'exhausted', winner: c.length === 1 ? c[0] : c[randInt(c.length)], among: c };
   }
   if (entry.outcome) { d.done = true; d.winner = entry.outcome.winner; stopAuto(); }
+  entry.after = { rem: d.rem.slice(), total: d.total, nonBlank: d.nonBlank, ov: d.ov, ev: d.ev };
   d.log.push(entry);
   d.last = entry;
   if (quiet) return;
@@ -232,6 +241,21 @@ function finishInstantly() {
   while (canDraw()) drawOne(true);
   renderDraw(true);
   requestNowOdds();
+}
+
+// Step through the record: show the state right after draw #pos (0 = before any draw).
+function goTo(pos) {
+  const d = draw;
+  if (!d || pos < 0 || pos > d.log.length || pos === d.step) return;
+  stopAuto();
+  const s = pos ? d.log[pos - 1].after : d.start;
+  Object.assign(d, { rem: s.rem.slice(), total: s.total, nonBlank: s.nonBlank, ov: s.ov, ev: s.ev, step: pos });
+  d.last = pos ? d.log[pos - 1] : null;
+  d.done = !!d.last?.outcome;
+  d.winner = d.done ? d.last.outcome.winner : -1;
+  if (!pos) odds.now = null;
+  renderDraw(false);
+  if (pos) requestNowOdds(); else renderOdds();
 }
 
 function resetDraw() {
@@ -445,6 +469,8 @@ function renderControls() {
   $('#btnAuto').disabled = !can && !autoTimer;
   $('#btnAuto').textContent = autoTimer ? '❚❚ Pause' : '▶ Auto-draw';
   $('#btnReset').disabled = !draw;
+  $('#logPrev').disabled = !draw || draw.step === 0;
+  $('#logNext').disabled = !draw || draw.step >= draw.log.length;
 }
 
 function renderDraw(animate) {
@@ -480,7 +506,7 @@ function renderLog() {
     $('#logCount').textContent = '';
     return;
   }
-  log.innerHTML = draw.log.map(e => {
+  log.innerHTML = draw.log.map((e, i) => {
     const r = e.res;
     let what;
     if (r.blank) what = '<span class="muted">blank, no effect</span>';
@@ -488,11 +514,15 @@ function renderLog() {
       what = `<span>OV ${e.marks.map((m, i) => (m ? i : -1)).filter(i => i >= 0).map(nameTag).join(' ')}</span>`;
       what += `<span class="ev-gain">EV ${r.gains.map(i => nameTag(i) + (i === r.deferTo && !r.direct.includes(i) ? ' <span class="muted">(deferred)</span>' : '')).join(' ')}</span>`;
     }
-    const final = e.outcome ? `<li class="final"><span class="step"></span><span class="which">Result</span><span class="what">${nameTag(e.outcome.winner)} elected${e.outcome.kind === 'exhausted' ? ' (box ran out)' : ''}</span></li>` : '';
-    return `<li><span class="step">#${e.step}</span><span class="which">№ ${pad2(e.ballot + 1)}</span><span class="what">${what}</span></li>${final}`;
+    const cls = i + 1 === draw.step ? 'current' : i >= draw.step ? 'future' : '';
+    const final = e.outcome ? `<li class="final ${cls}"><span class="step"></span><span class="which">Result</span><span class="what">${nameTag(e.outcome.winner)} elected${e.outcome.kind === 'exhausted' ? ' (box ran out)' : ''}</span></li>` : '';
+    return `<li class="${cls}" data-pos="${e.step}" title="Go to draw #${e.step}"><span class="step">#${e.step}</span><span class="which">№ ${pad2(e.ballot + 1)}</span><span class="what">${what}</span></li>${final}`;
   }).join('');
-  log.scrollTop = log.scrollHeight;
-  $('#logCount').textContent = `${draw.step} drawn`;
+  const cur = log.querySelector('li.current');
+  if (!cur || draw.step === draw.log.length) log.scrollTop = draw.step ? log.scrollHeight : 0;
+  else if (cur.offsetTop < log.scrollTop) log.scrollTop = cur.offsetTop;
+  else if (cur.offsetTop + cur.offsetHeight > log.scrollTop + log.clientHeight) log.scrollTop = cur.offsetTop + cur.offsetHeight - log.clientHeight;
+  $('#logCount').textContent = draw.step === draw.log.length ? `${draw.step} drawn` : `at #${draw.step} of ${draw.log.length}`;
 }
 
 /* ---------------- rendering: odds chart ---------------- */
@@ -675,6 +705,12 @@ $('#btnDraw').addEventListener('click', () => drawOne());
 $('#btnAuto').addEventListener('click', () => (autoTimer ? stopAuto() : startAuto()));
 $('#btnFinish').addEventListener('click', finishInstantly);
 $('#btnReset').addEventListener('click', resetDraw);
+$('#logPrev').addEventListener('click', () => goTo(draw.step - 1));
+$('#logNext').addEventListener('click', () => goTo(draw.step + 1));
+$('#log').addEventListener('click', e => {
+  const li = e.target.closest('li[data-pos]');
+  if (li) goTo(+li.dataset.pos);
+});
 $('#speed').addEventListener('change', () => { if (autoTimer) { stopAuto(); startAuto(); } });
 
 $('#btnShare').addEventListener('click', async () => {

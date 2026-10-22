@@ -135,7 +135,14 @@
       </div>
 
       <div class="card log-card">
-        <div class="card-head"><h3>Record of the draw</h3><span class="hint" id="logCount"></span></div>
+        <div class="card-head">
+          <h3>Record of the draw</h3>
+          <span class="log-nav">
+            <span class="hint" id="logCount"></span>
+            <button class="icon-btn" id="logPrev" type="button" aria-label="Previous draw" title="Previous draw">◀</button>
+            <button class="icon-btn" id="logNext" type="button" aria-label="Next draw" title="Next draw">▶</button>
+          </span>
+        </div>
         <ol class="log" id="log"></ol>
       </div>
     </section>
