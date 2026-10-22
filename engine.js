@@ -39,9 +39,9 @@
       res.ev[i]++;
       res.gains.push(i);
     }
-    // An option wins once it holds the most EVs alone, with at least 2. A tie at the top keeps the draw going.
+    // An option wins once it holds the most EVs alone, with at least 3. A tie at the top keeps the draw going.
     const top = Math.max(...res.ev);
-    if (top >= 2 && res.gains.some(i => res.ev[i] === top)) {
+    if (top >= 3 && res.gains.some(i => res.ev[i] === top)) {
       const atTop = res.ev.map((v, i) => (v === top ? i : -1)).filter(i => i >= 0);
       if (atTop.length === 1) res.winner = atTop[0];
       else res.tiedAtTop = atTop;

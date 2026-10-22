@@ -432,8 +432,8 @@ function explainHtml(entry) {
   }
   if (o) {
     let text;
-    if (o.kind === 'ev') text = res.ev[o.winner] === 2
-      ? `${nameTag(o.winner)} reaches 2 EVs and wins.`
+    if (o.kind === 'ev') text = res.ev[o.winner] === 3
+      ? `${nameTag(o.winner)} reaches 3 EVs and wins.`
       : `${nameTag(o.winner)} pulls ahead with ${plural(res.ev[o.winner], 'EV')} and wins.`;
     else {
       const tiedOnEv = res.ev.filter(v => v === res.ev[o.winner]).length > 1;
