@@ -211,9 +211,8 @@ function drawOne(quiet = false) {
   d.step++;
   const entry = { step: d.step, ballot: b, marks, res, outcome: null };
 
-  if (res.reached.length) {
-    const w = res.reached.length === 1 ? res.reached[0] : res.reached[randInt(res.reached.length)];
-    entry.outcome = { kind: res.reached.length === 1 ? 'ev' : 'lot', winner: w, among: res.reached };
+  if (res.winner >= 0) {
+    entry.outcome = { kind: 'ev', winner: res.winner, among: [res.winner] };
   } else if (d.nonBlank === 0) {
     const c = PAD.fallbackWinners(d.ov, d.ev);
     entry.outcome = { kind: 'exhausted', winner: c.length === 1 ? c[0] : c[randInt(c.length)], among: c };
@@ -368,7 +367,7 @@ function renderTally(animate) {
       <div class="tally-name"><i class="swatch" style="${sw(i)}"></i><span class="n">${esc(optName(i))}</span>${leader === i && !draw.done ? '<span class="leads">Leads</span>' : ''}${isWin ? '<span class="stamp">Elected</span>' : ''}</div>
       <div class="ov" title="${ov[i]} original vote${ov[i] === 1 ? '' : 's'}"><span class="num">${ov[i]}</span>${tallySvg(ov[i])}</div>
       <div class="evs" title="${ev[i]} effective vote${ev[i] === 1 ? '' : 's'}">
-        ${[0, 1].map(j => `<span class="evbox ${ev[i] > j ? 'on' : ''} ${gains.includes(i) && ev[i] === j + 1 ? 'new' : ''}" style="${sw(i)}">${CHECK}</span>`).join('')}
+        ${[0, 1].map(j => `<span class="evbox ${ev[i] > j ? 'on' : ''} ${gains.includes(i) && ev[i] === j + 1 ? 'new' : ''}" style="${sw(i)}">${CHECK}</span>`).join('')}${ev[i] > 2 ? `<span class="evmore">+${ev[i] - 2}</span>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -419,10 +418,14 @@ function explainHtml(entry) {
     }
   }
   const o = entry.outcome;
+  if (!o && res.tiedAtTop.length) {
+    lines.push(['Result', `${listNames(res.tiedAtTop)} are tied at ${plural(res.ev[res.tiedAtTop[0]], 'EV')}, so there's no clear winner yet. The draw goes on until one of them is ahead.`, true]);
+  }
   if (o) {
     let text;
-    if (o.kind === 'ev') text = `${nameTag(o.winner)} reaches 2 EVs and wins.`;
-    else if (o.kind === 'lot') text = `${listNames(o.among)} reach 2 EVs on the same ballot. Drawn by lot: ${nameTag(o.winner)} wins.`;
+    if (o.kind === 'ev') text = res.ev[o.winner] === 2
+      ? `${nameTag(o.winner)} reaches 2 EVs and wins.`
+      : `${nameTag(o.winner)} pulls ahead with ${plural(res.ev[o.winner], 'EV')} and wins.`;
     else {
       const tiedOnEv = res.ev.filter(v => v === res.ev[o.winner]).length > 1;
       text = 'No ballots that approve anything are left. ' + (o.among.length > 1
@@ -485,7 +488,7 @@ function renderLog() {
       what = `<span>OV ${e.marks.map((m, i) => (m ? i : -1)).filter(i => i >= 0).map(nameTag).join(' ')}</span>`;
       what += `<span class="ev-gain">EV ${r.gains.map(i => nameTag(i) + (i === r.deferTo && !r.direct.includes(i) ? ' <span class="muted">(deferred)</span>' : '')).join(' ')}</span>`;
     }
-    const final = e.outcome ? `<li class="final"><span class="step"></span><span class="which">Result</span><span class="what">${nameTag(e.outcome.winner)} elected${e.outcome.kind === 'lot' ? ' (by lot)' : e.outcome.kind === 'exhausted' ? ' (box ran out)' : ''}</span></li>` : '';
+    const final = e.outcome ? `<li class="final"><span class="step"></span><span class="which">Result</span><span class="what">${nameTag(e.outcome.winner)} elected${e.outcome.kind === 'exhausted' ? ' (box ran out)' : ''}</span></li>` : '';
     return `<li><span class="step">#${e.step}</span><span class="which">№ ${pad2(e.ballot + 1)}</span><span class="what">${what}</span></li>${final}`;
   }).join('');
   log.scrollTop = log.scrollHeight;

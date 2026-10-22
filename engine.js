@@ -20,7 +20,7 @@
     const k = ov.length;
     const res = {
       ov: ov.slice(), ev: ev.slice(), leader: -1, tie: false, blank: true,
-      direct: [], deferred: [], deferTo: -1, gains: [], reached: [],
+      direct: [], deferred: [], deferTo: -1, gains: [], winner: -1, tiedAtTop: [],
     };
     for (let i = 0; i < k; i++) if (marks[i]) { res.ov[i]++; res.blank = false; }
     res.leader = leaderOf(res.ov);
@@ -38,12 +38,18 @@
       if (!gain[i]) continue;
       res.ev[i]++;
       res.gains.push(i);
-      if (res.ev[i] >= 2) res.reached.push(i);
+    }
+    // An option wins once it holds the most EVs alone, with at least 2. A tie at the top keeps the draw going.
+    const top = Math.max(...res.ev);
+    if (top >= 2 && res.gains.some(i => res.ev[i] === top)) {
+      const atTop = res.ev.map((v, i) => (v === top ? i : -1)).filter(i => i >= 0);
+      if (atTop.length === 1) res.winner = atTop[0];
+      else res.tiedAtTop = atTop;
     }
     return res;
   }
 
-  // The box ran out with nobody at 2 EVs: most EVs, then most OVs. Returns every option still tied.
+  // The box ran out with no clear winner: most EVs, then most OVs. Returns every option still tied.
   function fallbackWinners(ov, ev) {
     let cand = ov.map((_, i) => i);
     const topEv = Math.max(...cand.map(i => ev[i]));
@@ -72,7 +78,7 @@
         credit(out, fallbackWinners(ov, ev), 1);
         return out;
       }
-      const key = rem.join(',') + '|' + ev.join('');
+      const key = rem.join(',') + '|' + ev.join(',');
       const hit = memo.get(key);
       if (hit) return hit;
       if (++nodes > budget) throw OVER;
@@ -82,7 +88,7 @@
         if (!rem[t]) continue;
         const p = rem[t] / total;
         const r = applyBallot(ov, ev, types[t]);
-        if (r.reached.length) { credit(out, r.reached, p); continue; }
+        if (r.winner >= 0) { out[r.winner] += p; continue; }
         rem[t]--;
         const sub = rec(total - 1, r.ov, r.ev);
         rem[t]++;
@@ -116,7 +122,7 @@
         while (x >= r[t]) { x -= r[t]; t++; }
         r[t]--; total--;
         const res = applyBallot(o, e, types[t]);
-        if (res.reached.length) { credit(out, res.reached, 1); break; }
+        if (res.winner >= 0) { out[res.winner]++; break; }
         o = res.ov; e = res.ev;
       }
       sims++;
