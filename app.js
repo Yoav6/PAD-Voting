@@ -577,7 +577,7 @@ function renderOdds() {
     : 'Exact: every possible order the ballots could be drawn in, weighted by its probability.';
   else if (res?.method === 'montecarlo') {
     const worst = Math.max(...res.probs.map(p => Math.sqrt((p * (1 - p)) / res.sims)));
-    method = `Estimated from ${res.sims.toLocaleString()} simulated draws (too many orders to count exactly), accurate to about ±${(worst * 196).toFixed(1)} points.`;
+    method = `Estimated from ${res.sims.toLocaleString()} simulated draws, accurate to about ±${(worst * 196).toFixed(1)} points.`;
   } else if (res?.method === 'final') method = 'The draw is over.';
   $('#oddsMethod').textContent = method;
 }
