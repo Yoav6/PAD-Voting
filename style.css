@@ -113,7 +113,7 @@ main { padding-top: 40px; padding-bottom: 20px; }
 }
 .part-head h2, .instructions h2 { margin: 0; font: 600 22px/1.15 var(--display); text-transform: uppercase; letter-spacing: .06em; }
 
-.instructions { border: 2px solid var(--ink); }
+.instructions { border: 2px solid var(--ink); margin-top: 20px; }
 .instructions h2 { font-size: 17px; letter-spacing: .2em; border-bottom: 1px solid var(--ink); padding-bottom: 8px; margin-bottom: 12px; }
 .rules { display: grid; grid-template-columns: 1fr; gap: 6px 28px; }
 .rule-intro p { margin: 0; color: var(--ink-2); max-width: 70ch; }
@@ -407,7 +407,8 @@ main { padding-top: 40px; padding-bottom: 20px; }
 
 /* footer, tooltip */
 .foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 36px; font: 500 12px/1 var(--display); letter-spacing: .2em; text-transform: uppercase; color: var(--ink-3); }
-.foot-info { display: flex; flex-direction: column; gap: 10px; }
+.foot-info { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.foot-info .sep { opacity: .5; }
 .foot-info a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .foot-info a:hover { color: var(--ink); }
 .tooltip {
