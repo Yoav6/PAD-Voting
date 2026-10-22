@@ -92,9 +92,20 @@ b.mp-chip, .mp-chip {
 }
 .theme-toggle {
   position: absolute; right: 16px; top: -12px; width: 34px; height: 34px; border-radius: 50%;
-  border: 1.5px solid var(--hair-2); background: transparent; cursor: pointer; font-size: 16px; color: var(--ink-2);
+  display: grid; place-items: center; padding: 0;
+  border: 1.5px solid var(--hair-2); background: transparent; cursor: pointer; color: var(--ink-2);
+  transition: color .15s, background-color .15s, border-color .15s, transform .3s;
 }
-.theme-toggle:hover { background: var(--paper-2); }
+.theme-toggle:hover { background: var(--paper-2); color: var(--ink); border-color: var(--ink-3); transform: rotate(-15deg); }
+.theme-toggle:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+/* show the icon for the theme you'd switch to */
+.theme-toggle .icon-sun { display: none; }
+:root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+:root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: block; }
+  :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: none; }
+}
 
 /* ---------- sections ---------- */
 main { padding-top: 40px; padding-bottom: 20px; }
