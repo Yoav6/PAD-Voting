@@ -362,21 +362,6 @@ function nameTag(i) {
 }
 const listNames = idx => idx.map(nameTag).join(', ');
 
-// Hand-counted tally marks (groups of five); past 15 just the number is shown.
-function tallySvg(n) {
-  if (!n || n > 15) return '';
-  const stroke = x => `<line x1="${x}" y1="2" x2="${x}" y2="16"/>`;
-  let x = 1, out = '';
-  for (let g = 0; g < Math.floor(n / 5); g++) {
-    for (let j = 0; j < 4; j++) out += stroke(x + j * 4);
-    out += `<line x1="${x - 2}" y1="13" x2="${x + 14}" y2="5"/>`;
-    x += 21;
-  }
-  for (let j = 0; j < n % 5; j++) out += stroke(x + j * 4);
-  x += (n % 5) * 4 + 1;
-  return `<svg width="${Math.max(x, 1)}" height="18" viewBox="0 0 ${Math.max(x, 1)} 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">${out}</svg>`;
-}
-
 const CHECK = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.5l3 3 6-7"/></svg>';
 
 function renderTally(animate) {
@@ -389,7 +374,7 @@ function renderTally(animate) {
     const isWin = draw?.done && draw.winner === i;
     return `<div class="tally-row ${isWin ? 'is-winner' : ''} ${gains.includes(i) ? 'gained' : ''}">
       <div class="tally-name"><i class="swatch" style="${sw(i)}"></i><span class="n">${esc(optName(i))}</span>${leader === i && !draw.done ? '<span class="leads">Leads</span>' : ''}${isWin ? '<span class="stamp">Elected</span>' : ''}</div>
-      <div class="ov" title="${ov[i]} original vote${ov[i] === 1 ? '' : 's'}"><span class="num">${ov[i]}</span>${tallySvg(ov[i])}</div>
+      <div class="ov" title="${ov[i]} original vote${ov[i] === 1 ? '' : 's'}"><span class="num">${ov[i]}</span></div>
       <div class="evs" title="${ev[i]} effective vote${ev[i] === 1 ? '' : 's'}">
         ${[0, 1].map(j => `<span class="evbox ${ev[i] > j ? 'on' : ''} ${gains.includes(i) && ev[i] === j + 1 ? 'new' : ''}" style="${sw(i)}">${CHECK}</span>`).join('')}${ev[i] > 2 ? `<span class="evmore">+${ev[i] - 2}</span>` : ''}
       </div>

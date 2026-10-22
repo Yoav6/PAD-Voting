@@ -332,7 +332,7 @@ main { padding-top: 40px; padding-bottom: 20px; }
 /* tally */
 .tally { position: relative; }
 .tally-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) 96px 88px; gap: 10px; align-items: center;
+  display: grid; grid-template-columns: minmax(0, 1fr) 40px 88px; gap: 10px; align-items: center;
   padding: 7px 6px; border-bottom: 1px solid var(--hair); position: relative; transition: background .3s;
 }
 .tally-row.head { font: 500 11px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); padding-top: 0; }
@@ -344,7 +344,6 @@ main { padding-top: 40px; padding-bottom: 20px; }
   background: var(--ink); color: var(--paper);
 }
 .ov { display: flex; align-items: center; gap: 8px; }
-.ov svg { display: block; flex: none; }
 .ov .num { font: 600 13px/1 var(--mono); color: var(--ink-2); min-width: 1.5em; }
 .evs { display: flex; gap: 6px; align-items: center; }
 .evmore { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink-2); }
@@ -449,7 +448,6 @@ main { padding-top: 40px; padding-bottom: 20px; }
   .part-head { flex-wrap: wrap; gap: 8px; }
   .part-head h2 { font-size: 19px; }
   .tally-row { grid-template-columns: minmax(0, 1fr) 30px 82px; gap: 6px; }
-  .ov svg { display: none; }
   .kicker { letter-spacing: .2em; font-size: 11px; }
   .kicker span { display: none; }
   .stamp { font-size: 12px; padding: 2px 5px; }
